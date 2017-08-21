@@ -6,16 +6,20 @@ This file summarizes **notable** changes for each release, but does not describe
 
 ### <a name="0.5.0"></a>Work in Progress for Version 0.5.0
 
-This introduces the 0.5.x series which standardizes on cats, cats-effect, and fs2. It will remain as a milestone-only release until cats 1.0.0 and fs2 0.10 final, and will track updates to those libraries.
+This introduces the 0.5.x series which standardizes on cats, cats-effect, and fs2. It will remain as a milestone-only release until cats 1.0.0 and fs2 0.10 final, and will track updates to those libraries. Notable changes thus far:
 
-Notable changes thus far:
+##### Meta
 
+- 🎵 *Ding, dong the Yax is dead!* 🎵 The new codebase is based on the cats output from the 0.4.x build. All import renames have been resolved to cats names.
 - The `-cats` segment of the artifact names is gone now. `doobie-core` uses cats now, as does everything else.
-- 🎵 *Ding, dong the yax is dead!* 🎵 The new codebase is based on the cats output. All import renames have been resolved to cats names.
 - Updated to cats 1.0.0-MF and fs2 0.10-M5, removed some interim stubs, changed all doc and examples to use `IO`.
 - `FreeGen2` code generator now generates all effect types with `cats.effect.Async` instances, in preparation for transactors that can make use of distinct thread pools for certain operations (JDBC primitives for instance). Free algebras and interpreters for Postgres are also generated now.
 - The doc has been ported to [sbt-microsites](https://github.com/47deg/sbt-microsites) and is undergoing review (help wanted!).
 - The release process is somewhat better.
+
+##### User-Facing API
+
+- `Composite[A]` now implies `Composite[Option[A]]` which is a very useful change. It means joins can be expressed much more easily. See `Join.scala` in the `example` project.
 
 ### <a name="0.4.2"></a>New and Noteworthy for Version 0.4.2
 
