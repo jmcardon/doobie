@@ -1,21 +1,20 @@
 package doobie.util
 
-import doobie.free.connection.{ ConnectionIO, ConnectionOp, setAutoCommit, commit, rollback, close, unit, delay }
+import doobie.free.connection.{ConnectionIO, ConnectionOp, close, commit, delay, rollback, setAutoCommit, unit}
 import doobie.free.KleisliInterpreter
 import doobie.util.lens._
 import doobie.util.yolo.Yolo
 import doobie.syntax.monaderror._
-
-import cats.{ Monad, MonadError, ~> }
+import cats.{Monad, MonadError, ~>}
 import cats.data.Kleisli
 import cats.free.Free
 import cats.implicits._
-import cats.effect.{ Effect, Sync, Async }
+import cats.effect.{Async, Effect, Sync}
 import fs2.Stream
-import fs2.Stream.{ eval, eval_ }
-
-import java.sql.{ Connection, DriverManager }
+import fs2.Stream.{eval, eval_}
+import java.sql.{Connection, DriverManager}
 import javax.sql.DataSource
+import scala.concurrent.{ExecutionContext => EC}
 
 object transactor  {
 
@@ -197,6 +196,30 @@ object transactor  {
       val interpret = interpret0
       val strategy = strategy0
     }
+  }
+
+  /**
+   * Naiive implementation of an async transactor.
+   * There is no priority on specific ops for submitting to the pool.
+   * In this implementation, the user is wholly responsible for providing a `ThreadPoolExecutor`
+   *
+   *
+   * @param mainEc the main ExecutionContext
+   * @param blockingEc the blocking Execution context
+   * @tparam M a target effect type; typically `IO`
+   */
+  sealed abstract class AsyncTransactor[M[_]](mainEc: EC, blockingEc: EC, xa: Transactor[M])(implicit M: Async[M]){
+    def transAsync: ConnectionIO ~> M = λ[ConnectionIO ~> M] { io =>
+      for {
+        _ <- M.shift(blockingEc)
+        transaction <- xa.trans.apply(io)
+        _ <- M.shift(mainEc)
+      } yield transaction
+    }
+  }
+
+  object AsyncTransactor {
+    def apply[M[_]: Async](xa: Transactor[M], mainEc: EC, blockingEC: EC) = new AsyncTransactor[M](mainEc, blockingEC, xa) {}
   }
 
   object Transactor {
